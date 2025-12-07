@@ -158,6 +158,24 @@ leave-approval-flow-main/
 - **Node.js** 16.x or higher (or Bun)
 - **npm** or **yarn** or **Bun** package manager
 - A modern web browser
+- **MongoDB** (local or MongoDB Atlas cloud)
+
+## 🗄️ Database Setup
+
+This application uses MongoDB for data persistence. You have two options:
+
+### Option 1: Local MongoDB Installation
+1. Download MongoDB Community Edition from https://www.mongodb.com/try/download/community
+2. Install and start MongoDB server
+3. By default runs on `mongodb://localhost:27017`
+
+### Option 2: MongoDB Atlas (Recommended for Production)
+1. Create free account at https://www.mongodb.com/cloud/atlas
+2. Create a cluster and database
+3. Get connection string from Atlas dashboard
+4. Connection format: `mongodb+srv://username:password@cluster.mongodb.net/leave-approval`
+
+For detailed backend configuration, see [Backend README](./backend/README.md)
 
 ## 🚀 Installation
 
@@ -170,14 +188,22 @@ cd leave-approval-flow-main
 
 ### 2. Install Dependencies
 
-Using npm:
+**Frontend dependencies:**
 ```bash
 npm install
+```
+
+**Backend dependencies:**
+```bash
+cd backend
+npm install
+cd ..
 ```
 
 Or using yarn:
 ```bash
 yarn install
+cd backend && yarn install && cd ..
 ```
 
 Or using Bun:
@@ -185,17 +211,53 @@ Or using Bun:
 bun install
 ```
 
+### 3. Configure Environment Variables
+
+Create `.env.local` in the root directory (frontend):
+```env
+VITE_API_URL=http://localhost:5000/api
+```
+
+Create `.env` in the `backend` directory:
+```env
+MONGODB_URI=mongodb://localhost:27017/leave-approval
+PORT=5000
+JWT_SECRET=your-secret-key-change-in-production
+```
+
+### 4. Seed Initial Data (Optional)
+
+Populate database with test users:
+```bash
+npm run seed:db
+```
+
+Test credentials:
+- **Student**: student@college.edu / password123
+- **Advisor**: advisor@college.edu / password123
+- **HOD**: hod@college.edu / password123
+- **Principal**: principal@college.edu / password123
+- **Admin**: admin@college.edu / password123
+
 ## 🏃 Running the Application
 
-### Development Mode
-
-Start the development server:
+### Development Mode (Frontend only)
 
 ```bash
 npm run dev
 ```
 
-The application will be available at `http://localhost:8080`
+Available at `http://localhost:8080`
+
+### Development Mode (Frontend + Backend)
+
+Run both frontend and backend simultaneously:
+```bash
+npm run dev:full
+```
+
+- Frontend: `http://localhost:8080`
+- Backend API: `http://localhost:5000/api`
 
 ### Production Build
 

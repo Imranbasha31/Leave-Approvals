@@ -14,7 +14,7 @@ import {
   Edit,
   Trash2
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Table,
   TableBody,
@@ -38,18 +38,30 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  RadioGroup,
+  RadioGroupItem,
+} from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
-// Mock users for demonstration
-const INITIAL_USERS = [
-  { id: '1', name: 'John Student', email: 'student@college.edu', role: 'student' as UserRole, department: 'Computer Science' },
-  { id: '2', name: 'Dr. Sarah Advisor', email: 'advisor@college.edu', role: 'advisor' as UserRole, department: 'Computer Science' },
-  { id: '3', name: 'Dr. Michael HOD', email: 'hod@college.edu', role: 'hod' as UserRole, department: 'Computer Science' },
-  { id: '4', name: 'Prof. Elizabeth Principal', email: 'principal@college.edu', role: 'principal' as UserRole },
-  { id: '5', name: 'Admin User', email: 'admin@college.edu', role: 'admin' as UserRole },
-  { id: '6', name: 'Jane Doe', email: 'jane@college.edu', role: 'student' as UserRole, department: 'Electronics' },
-  { id: '7', name: 'Mike Johnson', email: 'mike@college.edu', role: 'student' as UserRole, department: 'Mechanical' },
+const DEPARTMENTS = [
+  'Bsc Computer Science',
+  'Bsc Information Technology',
+  'Bsc ISM',
+  'Bachelor of Computer Application',
 ];
+
+interface UserData {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  department?: string;
+  studentId?: string;
+}
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 const getRoleBadgeVariant = (role: UserRole) => {
   switch (role) {
@@ -63,15 +75,49 @@ const getRoleBadgeVariant = (role: UserRole) => {
 
 export default function ManageUsers() {
   const [search, setSearch] = useState('');
-  const [users, setUsers] = useState(INITIAL_USERS);
+  const [users, setUsers] = useState<UserData[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editingUserId, setEditingUserId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
   const [newUser, setNewUser] = useState({
     name: '',
     email: '',
+    password: '',
     role: '' as UserRole | '',
-    department: ''
+    department: '',
+    studentId: ''
   });
   const { toast } = useToast();
+  const { user: currentUser } = useAuth();
+
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('token');
+    return {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` }),
+    };
+  };
+
+  // Fetch all users from backend
+  const fetchUsers = async () => {
+    try {
+      const response = await fetch(`${API_URL}/auth/users`, {
+        headers: getAuthHeaders(),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setUsers(data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch users:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
 
   const filteredUsers = users.filter(user =>
     user.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -79,40 +125,199 @@ export default function ManageUsers() {
     user.department?.toLowerCase().includes(search.toLowerCase())
   );
 
-  const handleAddUser = () => {
-    if (!newUser.name || !newUser.email || !newUser.role) {
+  const handleAddUser = async () => {
+    if (!newUser.name || !newUser.email || !newUser.role || !newUser.studentId) {
       toast({
         title: "Missing fields",
-        description: "Please fill in name, email, and role.",
+        description: "Please fill in name, email, role, and student ID.",
         variant: "destructive"
       });
       return;
     }
 
-    const user = {
-      id: Date.now().toString(),
-      name: newUser.name,
-      email: newUser.email,
-      role: newUser.role as UserRole,
-      department: newUser.department || undefined
-    };
+    if (!isEditMode && !newUser.password) {
+      toast({
+        title: "Missing password",
+        description: "Password is required for new users.",
+        variant: "destructive"
+      });
+      return;
+    }
 
-    setUsers([...users, user]);
-    setNewUser({ name: '', email: '', role: '', department: '' });
+    // Check for duplicate studentId (unless in edit mode for same user)
+    const duplicateStudentId = users.find(u => 
+      u.studentId?.toLowerCase() === newUser.studentId.toLowerCase() && 
+      u.id !== editingUserId
+    );
+    if (duplicateStudentId) {
+      toast({
+        title: "Duplicate Student ID",
+        description: `Student ID "${newUser.studentId}" is already assigned to ${duplicateStudentId.name}`,
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Check for duplicate email
+    const duplicateEmail = users.find(u => 
+      u.email.toLowerCase() === newUser.email.toLowerCase() && 
+      u.id !== editingUserId
+    );
+    if (duplicateEmail) {
+      toast({
+        title: "Duplicate Email",
+        description: `Email "${newUser.email}" is already in use`,
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/auth/create-user`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          name: newUser.name,
+          email: newUser.email,
+          password: newUser.password,
+          role: newUser.role,
+          department: newUser.department || null,
+          studentId: newUser.studentId || null,
+        }),
+      });
+
+      if (response.ok) {
+        const createdUser = await response.json();
+        console.log('Created user response:', createdUser);
+        
+        if (isEditMode && editingUserId) {
+          // Update user in list
+          setUsers(users.map(u => u.id === editingUserId ? createdUser : u));
+          toast({
+            title: "User updated",
+            description: `${newUser.name} has been updated successfully.`
+          });
+        } else {
+          // Add new user to list and refetch to ensure sync with backend
+          const updatedUsers = [...users, createdUser];
+          setUsers(updatedUsers);
+          console.log('Users state after adding:', updatedUsers);
+          
+          // Refetch users from backend after a brief delay to ensure database write completes
+          setTimeout(() => {
+            fetchUsers();
+          }, 1000);
+          
+          toast({
+            title: "User added",
+            description: `${newUser.name} has been added successfully.`
+          });
+        }
+
+        setNewUser({ name: '', email: '', password: '', role: '', department: '', studentId: '' });
+        setIsDialogOpen(false);
+        setIsEditMode(false);
+        setEditingUserId(null);
+      } else {
+        const error = await response.json();
+        toast({
+          title: "Error",
+          description: error.error || "Failed to add user",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to add user. Please try again.",
+        variant: "destructive"
+      });
+      console.error('Add user error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEditUser = (user: UserData) => {
+    setNewUser({
+      name: user.name,
+      email: user.email,
+      password: '',
+      role: user.role,
+      department: user.department || '',
+      studentId: user.studentId || ''
+    });
+    setEditingUserId(user.id);
+    setIsEditMode(true);
+    setIsDialogOpen(true);
+  };
+
+  const handleOpenDialog = () => {
+    setNewUser({ name: '', email: '', password: '', role: '', department: '', studentId: '' });
+    setIsEditMode(false);
+    setEditingUserId(null);
+    setIsDialogOpen(true);
+  };
+
+  const handleCloseDialog = () => {
     setIsDialogOpen(false);
-    toast({
-      title: "User added",
-      description: `${user.name} has been added successfully.`
-    });
+    setIsEditMode(false);
+    setEditingUserId(null);
+    setNewUser({ name: '', email: '', password: '', role: '', department: '', studentId: '' });
   };
 
-  const handleDeleteUser = (userId: string) => {
-    setUsers(users.filter(u => u.id !== userId));
-    toast({
-      title: "User deleted",
-      description: "User has been removed."
-    });
+  const handleDeleteUser = async (userId: string) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:5000/api/auth/users/${userId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        toast({
+          title: "Error",
+          description: error.error || "Failed to delete user",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      setUsers(users.filter(u => u.id !== userId));
+      toast({
+        title: "User deleted",
+        description: "User has been removed."
+      });
+    } catch (error) {
+      console.error('Delete error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete user",
+        variant: "destructive"
+      });
+    }
   };
+
+  if (currentUser?.role !== 'admin') {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-screen">
+          <Card className="w-full max-w-md">
+            <CardContent className="pt-6">
+              <div className="text-center">
+                <h2 className="text-xl font-bold mb-2">Access Denied</h2>
+                <p className="text-muted-foreground">You don't have permission to manage users. Only administrators can access this page.</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
@@ -121,7 +326,7 @@ export default function ManageUsers() {
           <h1 className="text-2xl lg:text-3xl font-display font-bold">Manage Users</h1>
           <p className="text-muted-foreground mt-1">Add, edit, and manage system users</p>
         </div>
-        <Button variant="hero" onClick={() => setIsDialogOpen(true)}>
+        <Button variant="hero" onClick={() => handleOpenDialog()}>
           <Plus className="h-4 w-4" />
           Add User
         </Button>
@@ -187,7 +392,11 @@ export default function ManageUsers() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
-                      <Button variant="ghost" size="icon">
+                      <Button 
+                        variant="ghost" 
+                        size="icon"
+                        onClick={() => handleEditUser(user)}
+                      >
                         <Edit className="h-4 w-4" />
                       </Button>
                       <Button 
@@ -210,9 +419,9 @@ export default function ManageUsers() {
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Add New User</DialogTitle>
+            <DialogTitle>{isEditMode ? 'Edit User' : 'Add New User'}</DialogTitle>
             <DialogDescription>
-              Create a new user account in the system.
+              {isEditMode ? 'Update user information.' : 'Create a new user account in the system.'}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -235,6 +444,18 @@ export default function ManageUsers() {
                 onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
               />
             </div>
+            {!isEditMode && (
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="Enter password"
+                  value={newUser.password}
+                  onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                />
+              </div>
+            )}
             <div className="space-y-2">
               <Label htmlFor="role">Role</Label>
               <Select
@@ -254,20 +475,40 @@ export default function ManageUsers() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="department">Department (Optional)</Label>
+              <Label>Department (Optional)</Label>
+              <RadioGroup 
+                value={newUser.department} 
+                onValueChange={(value) => setNewUser({ ...newUser, department: value })}
+              >
+                <div className="space-y-2">
+                  {DEPARTMENTS.map((dept) => (
+                    <div key={dept} className="flex items-center space-x-2">
+                      <RadioGroupItem value={dept} id={dept} />
+                      <Label htmlFor={dept} className="font-normal cursor-pointer">
+                        {dept}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              </RadioGroup>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="studentId">Student ID (Optional)</Label>
               <Input
-                id="department"
-                placeholder="Enter department"
-                value={newUser.department}
-                onChange={(e) => setNewUser({ ...newUser, department: e.target.value })}
+                id="studentId"
+                placeholder="Enter student ID"
+                value={newUser.studentId}
+                onChange={(e) => setNewUser({ ...newUser, studentId: e.target.value })}
               />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+            <Button variant="outline" onClick={handleCloseDialog}>
               Cancel
             </Button>
-            <Button onClick={handleAddUser}>Add User</Button>
+            <Button onClick={handleAddUser} disabled={loading}>
+              {loading ? 'Saving...' : isEditMode ? 'Update User' : 'Add User'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

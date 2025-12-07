@@ -23,6 +23,24 @@ export default function ApplyLeave() {
     reason: '',
   });
 
+  const [proofFile, setProofFile] = useState<File | null>(null);
+  const [proofFileBase64, setProofFileBase64] = useState<string | null>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setProofFile(file);
+      
+      // Convert file to Base64
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const base64String = event.target?.result as string;
+        setProofFileBase64(base64String);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -44,6 +62,18 @@ export default function ApplyLeave() {
       fromDate: formData.fromDate,
       toDate: formData.toDate,
       reason: formData.reason,
+      proofFile: proofFile?.name || null,
+    }).then((newRequestId) => {
+      // Store Base64 file data in localStorage associated with this request
+      if (proofFileBase64 && newRequestId) {
+        const fileData = {
+          name: proofFile?.name || 'document',
+          data: proofFileBase64,
+          type: proofFile?.type || 'application/octet-stream',
+          timestamp: new Date().getTime()
+        };
+        localStorage.setItem(`proof_${newRequestId}`, JSON.stringify(fileData));
+      }
     });
 
     toast({
@@ -161,8 +191,14 @@ export default function ApplyLeave() {
                   id="proof"
                   type="file"
                   accept=".pdf,.jpg,.jpeg,.png"
+                  onChange={handleFileChange}
                   className="h-11 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-primary/10 file:text-primary file:font-medium hover:file:bg-primary/20"
                 />
+                {proofFile && (
+                  <p className="text-sm text-primary font-medium">
+                    ✓ Selected: {proofFile.name}
+                  </p>
+                )}
                 <p className="text-xs text-muted-foreground">
                   Upload medical certificates, invitation cards, or other relevant documents (PDF, JPG, PNG)
                 </p>

@@ -5,6 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { LeaveRequestCard } from '@/components/LeaveRequestCard';
 import { Link } from 'react-router-dom';
+import { useEffect } from 'react';
+import { ApprovalStage } from '@/types/leave';
 import { 
   FileText, 
   CheckCircle, 
@@ -16,9 +18,9 @@ import {
 
 export default function Dashboard() {
   const { user } = useAuth();
-  const { leaveRequests, getLeavesByStudent, getPendingApprovals } = useLeave();
+  const { leaveRequests, getLeavesByStudent, pendingApprovals, fetchPendingApprovals } = useLeave();
 
-  const getStageForRole = () => {
+  const getStageForRole = (): ApprovalStage => {
     switch (user?.role) {
       case 'advisor': return 1;
       case 'hod': return 2;
@@ -27,6 +29,21 @@ export default function Dashboard() {
     }
   };
 
+  useEffect(() => {
+    if (user?.role !== 'student') {
+      const stage = getStageForRole();
+      fetchPendingApprovals(stage);
+    }
+  }, [user?.role, fetchPendingApprovals]);
+
+  // Re-fetch approvals when component mounts (e.g., navigating back from Approvals page)
+  useEffect(() => {
+    if (user?.role !== 'student') {
+      const stage = getStageForRole();
+      fetchPendingApprovals(stage);
+    }
+  }, []);
+
   // Student stats
   const studentLeaves = user?.id ? getLeavesByStudent(user.id) : [];
   const pendingCount = studentLeaves.filter(l => l.status === 'pending').length;
@@ -34,18 +51,25 @@ export default function Dashboard() {
   const rejectedCount = studentLeaves.filter(l => l.status === 'rejected').length;
 
   // Approver stats
-  const pendingApprovals = getPendingApprovals(getStageForRole());
+  const approvalsCount = pendingApprovals.length;
 
   // Admin stats
   const totalRequests = leaveRequests.length;
   const totalPending = leaveRequests.filter(l => l.status === 'pending').length;
   const totalApproved = leaveRequests.filter(l => l.status === 'approved').length;
 
+  // Helper function to get display name with qualification
+  const getDisplayNameWithQualification = (fullName?: string) => {
+    if (!fullName) return 'User';
+    // Keep the full name as is (with title/qualification)
+    return fullName.trim();
+  };
+
   const renderStudentDashboard = () => (
     <>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl lg:text-3xl font-display font-bold">Welcome back, {user?.name?.split(' ')[0]}!</h1>
+          <h1 className="text-2xl lg:text-3xl font-display font-bold">Welcome back, {getDisplayNameWithQualification(user?.name)}!</h1>
           <p className="text-muted-foreground mt-1">Track and manage your leave requests</p>
         </div>
         <Button asChild variant="hero">
@@ -130,7 +154,7 @@ export default function Dashboard() {
   const renderApproverDashboard = () => (
     <>
       <div className="mb-6">
-        <h1 className="text-2xl lg:text-3xl font-display font-bold">Welcome, {user?.name?.split(' ')[0]}!</h1>
+        <h1 className="text-2xl lg:text-3xl font-display font-bold">Welcome, {getDisplayNameWithQualification(user?.name)}!</h1>
         <p className="text-muted-foreground mt-1">Review and approve leave requests</p>
       </div>
 
@@ -142,7 +166,7 @@ export default function Dashboard() {
                 <Clock className="h-6 w-6" />
               </div>
               <div>
-                <p className="text-3xl font-bold">{pendingApprovals.length}</p>
+                <p className="text-3xl font-bold">{approvalsCount}</p>
                 <p className="text-sm opacity-90">Pending Approvals</p>
               </div>
             </div>
@@ -166,7 +190,7 @@ export default function Dashboard() {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-display font-semibold">Pending Approvals</h2>
-          {pendingApprovals.length > 0 && (
+          {approvalsCount > 0 && (
             <Button variant="ghost" asChild>
               <Link to="/dashboard/approvals">
                 View All <ArrowRight className="h-4 w-4 ml-1" />
@@ -178,7 +202,7 @@ export default function Dashboard() {
           {pendingApprovals.slice(0, 3).map((request) => (
             <LeaveRequestCard key={request.id} request={request} showTimeline />
           ))}
-          {pendingApprovals.length === 0 && (
+          {approvalsCount === 0 && (
             <Card>
               <CardContent className="py-12 text-center">
                 <CheckCircle className="h-12 w-12 text-success mx-auto mb-4" />

@@ -16,7 +16,9 @@ import {
   ChevronRight,
   Calendar,
   User,
-  Building
+  Building,
+  Paperclip,
+  Eye  
 } from 'lucide-react';
 import {
   Dialog,
@@ -25,15 +27,18 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogClose,
 } from '@/components/ui/dialog';
+import { useEffect } from 'react';
 
 export default function Approvals() {
   const { user } = useAuth();
-  const { getPendingApprovals, approveLeave, rejectLeave } = useLeave();
+  const { pendingApprovals, approveLeave, rejectLeave, fetchPendingApprovals } = useLeave();
   
   const [selectedRequest, setSelectedRequest] = useState<LeaveRequest | null>(null);
   const [actionType, setActionType] = useState<'approve' | 'reject' | null>(null);
   const [comment, setComment] = useState('');
+  const [viewingProof, setViewingProof] = useState<{fileName: string; studentName: string; fileData?: string} | null>(null);
 
   const getStageForRole = (): ApprovalStage => {
     switch (user?.role) {
@@ -45,7 +50,12 @@ export default function Approvals() {
   };
 
   const stage = getStageForRole();
-  const pendingApprovals = getPendingApprovals(stage);
+
+  useEffect(() => {
+    if (fetchPendingApprovals) {
+      fetchPendingApprovals(stage);
+    }
+  }, [stage, fetchPendingApprovals]);
 
   const handleAction = (request: LeaveRequest, action: 'approve' | 'reject') => {
     setSelectedRequest(request);
@@ -53,7 +63,7 @@ export default function Approvals() {
     setComment('');
   };
 
-  const confirmAction = () => {
+  const confirmAction = async () => {
     if (!selectedRequest || !actionType || !user) return;
 
     if (actionType === 'reject' && !comment.trim()) {
@@ -65,25 +75,53 @@ export default function Approvals() {
       return;
     }
 
-    if (actionType === 'approve') {
-      approveLeave(selectedRequest.id, user.id, user.name, stage, comment || undefined);
+    try {
+      if (actionType === 'approve') {
+        await approveLeave(selectedRequest.id, comment || undefined);
+        toast({
+          title: 'Request approved',
+          description: stage === 3 
+            ? 'Leave request has been finally approved.' 
+            : `Request forwarded to ${STAGE_LABELS[(stage + 1) as ApprovalStage]}.`,
+        });
+      } else {
+        await rejectLeave(selectedRequest.id, comment);
+        toast({
+          title: 'Request rejected',
+          description: 'The student will be notified of the rejection.',
+        });
+      }
+
+      setSelectedRequest(null);
+      setActionType(null);
+      setComment('');
+      
+      // Refetch pending approvals after action
+      await fetchPendingApprovals(stage);
+    } catch (error) {
       toast({
-        title: 'Request approved',
-        description: stage === 3 
-          ? 'Leave request has been finally approved.' 
-          : `Request forwarded to ${STAGE_LABELS[(stage + 1) as ApprovalStage]}.`,
-      });
-    } else {
-      rejectLeave(selectedRequest.id, user.id, user.name, stage, comment);
-      toast({
-        title: 'Request rejected',
-        description: 'The student will be notified of the rejection.',
+        title: 'Error',
+        description: (error as Error).message || 'Failed to process request',
+        variant: 'destructive',
       });
     }
+  };
 
-    setSelectedRequest(null);
-    setActionType(null);
-    setComment('');
+  const handleViewProof = (proofFileName: string, studentName: string, leaveId: string) => {
+    try {
+      // Try to get Base64 data from localStorage
+      const storedFileData = localStorage.getItem(`proof_${leaveId}`);
+      if (storedFileData) {
+        const proofData = JSON.parse(storedFileData);
+        setViewingProof({ fileName: proofData.name, studentName, fileData: proofData.data });
+      } else {
+        // Fall back to just showing the filename
+        setViewingProof({ fileName: proofFileName, studentName });
+      }
+    } catch (e) {
+      // If parsing fails, just show the filename
+      setViewingProof({ fileName: proofFileName, studentName });
+    }
   };
 
   return (
@@ -139,6 +177,26 @@ export default function Approvals() {
                   </p>
                   <p className="text-sm text-muted-foreground">{request.reason}</p>
                 </div>
+
+                {/* Proof File */}
+                {request.proofFile && (
+                  <div className="p-4 bg-primary/5 border border-primary/10 rounded-lg">
+                    <p className="text-sm font-medium mb-3 flex items-center gap-2">
+                      <Paperclip className="h-4 w-4 text-primary" />
+                      Supporting Documents
+                    </p>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-sm text-primary font-medium">{request.proofFile}</p>
+                      <button
+                        onClick={() => handleViewProof(request.proofFile, request.studentName, request.id)}
+                        className="p-2 hover:bg-primary/10 rounded-lg transition-colors"
+                        title="View proof document"
+                      >
+                        <Eye className="h-4 w-4 text-primary" />
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 {/* Workflow Timeline */}
                 <WorkflowTimeline request={request} />
@@ -228,6 +286,60 @@ export default function Approvals() {
               )}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Proof Viewing Modal */}
+      <Dialog open={!!viewingProof} onOpenChange={(open) => !open && setViewingProof(null)}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Proof Document</DialogTitle>
+            <DialogClose />
+          </DialogHeader>
+          {viewingProof && (
+            <div className="space-y-4">
+              <div className="p-4 bg-muted rounded-lg">
+                <p className="text-sm font-medium text-muted-foreground mb-2">Document Name</p>
+                <p className="text-lg font-semibold break-all">{viewingProof.fileName}</p>
+              </div>
+              <div className="p-4 bg-muted rounded-lg">
+                <p className="text-sm font-medium text-muted-foreground mb-2">Student Name</p>
+                <p className="text-lg font-semibold">{viewingProof.studentName}</p>
+              </div>
+              
+              {/* File Preview */}
+              {viewingProof.fileData ? (
+                <div className="border rounded-lg overflow-hidden bg-gray-50 p-4">
+                  <p className="text-sm font-medium text-muted-foreground mb-3">Preview</p>
+                  {viewingProof.fileData.startsWith('data:image/') ? (
+                    <img 
+                      src={viewingProof.fileData} 
+                      alt="Proof" 
+                      className="max-w-full max-h-96 mx-auto rounded border"
+                    />
+                  ) : viewingProof.fileData.startsWith('data:application/pdf') ? (
+                    <iframe 
+                      src={viewingProof.fileData} 
+                      className="w-full h-96 rounded border"
+                      title="PDF Preview"
+                    />
+                  ) : (
+                    <div className="p-4 bg-white rounded border text-center">
+                      <p className="text-sm text-muted-foreground">
+                        📁 File type preview not supported. File: {viewingProof.fileName}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="p-4 bg-blue-50 border-2 border-blue-200 rounded-lg">
+                  <p className="text-sm text-blue-900 leading-relaxed">
+                    📄 <span className="font-medium">This is a proof document submitted by the student.</span> In a production environment, the actual file content would be displayed here (PDF preview, image preview, etc.).
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </DashboardLayout>

@@ -75,7 +75,7 @@ export default function Index() {
                   <ArrowRight className="h-5 w-5 ml-2" />
                 </Link>
               </Button>
-              <Button asChild size="xl" variant="outline" className="border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10">
+              <Button asChild size="xl" variant="hero" className="bg-primary-foreground text-foreground hover:bg-primary-foreground/90">
                 <a href="#features">
                   Learn More
                 </a>
@@ -187,7 +187,7 @@ export default function Index() {
       {/* Footer */}
       <footer className="border-t py-8">
         <div className="container text-center text-sm text-muted-foreground">
-          <p>© 2024 LeaveFlow. Digital Leave Approval System for Educational Institutions.</p>
+          <p>© 2025 LeaveFlow. Digital Leave Approval System for Educational Institutions.</p>
         </div>
       </footer>
     </div>

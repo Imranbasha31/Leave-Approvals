@@ -2,14 +2,22 @@ import { LeaveRequest } from '@/types/leave';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { StatusBadge } from '@/components/StatusBadge';
 import { WorkflowTimeline } from '@/components/WorkflowTimeline';
-import { Calendar, FileText, Building } from 'lucide-react';
+import { Calendar, FileText, Building, Paperclip, Eye } from 'lucide-react';
 
 interface LeaveRequestCardProps {
   request: LeaveRequest;
   showTimeline?: boolean;
+  showDownloadButton?: boolean;
+  onViewProof?: (proofFileName: string, studentName: string) => void;
 }
 
-export function LeaveRequestCard({ request, showTimeline = false }: LeaveRequestCardProps) {
+export function LeaveRequestCard({ request, showTimeline = false, showDownloadButton = false, onViewProof }: LeaveRequestCardProps) {
+  const handleViewClick = () => {
+    if (onViewProof && request.proofFile) {
+      onViewProof(request.proofFile, request.studentName);
+    }
+  };
+
   return (
     <Card className="overflow-hidden transition-all duration-200 hover:shadow-lg">
       <CardHeader className="pb-3">
@@ -40,6 +48,24 @@ export function LeaveRequestCard({ request, showTimeline = false }: LeaveRequest
           <FileText className="h-4 w-4 text-muted-foreground mt-0.5" />
           <p className="text-sm text-muted-foreground">{request.reason}</p>
         </div>
+
+        {request.proofFile && (
+          <div className="flex items-center justify-between gap-2 p-3 bg-primary/5 border border-primary/10 rounded-lg">
+            <div className="flex items-center gap-2">
+              <Paperclip className="h-4 w-4 text-primary" />
+              <span className="text-sm text-primary font-medium">{request.proofFile}</span>
+            </div>
+            {showDownloadButton && (
+              <button
+                onClick={handleViewClick}
+                className="p-1.5 hover:bg-primary/10 rounded transition-colors flex-shrink-0"
+                title="View proof document"
+              >
+                <Eye className="h-4 w-4 text-primary" />
+              </button>
+            )}
+          </div>
+        )}
 
         {showTimeline && (
           <div className="pt-4 border-t">

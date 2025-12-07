@@ -8,11 +8,19 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Link } from 'react-router-dom';
 import { FileText, Plus } from 'lucide-react';
+import { useEffect } from 'react';
 
 export default function MyRequests() {
   const { user } = useAuth();
-  const { getLeavesByStudent } = useLeave();
+  const { getLeavesByStudent, fetchLeaveRequests } = useLeave();
   const [selectedRequest, setSelectedRequest] = useState<string | null>(null);
+
+  // Refetch leave requests when component mounts
+  useEffect(() => {
+    if (user?.role === 'student') {
+      fetchLeaveRequests();
+    }
+  }, [user, fetchLeaveRequests]);
 
   const studentLeaves = user?.id ? getLeavesByStudent(user.id) : [];
 
