@@ -1,6 +1,6 @@
-# LeaveFlow - Digital Leave Approval System
+# ApproveIQ - Digital Leave Approval System
 
-A modern, streamlined digital leave approval workflow system designed for colleges and educational institutions. LeaveFlow simplifies the leave request process through a structured 3-step approval workflow: Class Advisor → HOD → Principal.
+A modern, streamlined digital leave approval workflow system designed for colleges and educational institutions. ApproveIQ simplifies the leave request process through a structured 3-step approval workflow: Class Advisor → HOD → Principal.
 
 ## 📋 Table of Contents
 
@@ -21,7 +21,7 @@ A modern, streamlined digital leave approval workflow system designed for colleg
 
 ## 🎯 Overview
 
-LeaveFlow is a comprehensive leave management system built with modern web technologies. It facilitates the complete lifecycle of leave requests from student application through multi-stage approval to final decision recording.
+ApproveIQ is a comprehensive leave management system built with modern web technologies. It facilitates the complete lifecycle of leave requests from student application through multi-stage approval to final decision recording.
 
 The system implements a hierarchical approval workflow with role-based access control, ensuring proper governance and transparency in the leave approval process.
 

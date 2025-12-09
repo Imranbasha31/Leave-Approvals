@@ -22,3 +22,11 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Docker & Environment
+.docker/
+docker-volumes/
+mongodb_data/
+.env
+.env.local
+.env.production

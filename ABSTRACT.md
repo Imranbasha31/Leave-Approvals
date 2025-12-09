@@ -1,8 +1,8 @@
-# LeaveFlow - Digital Leave Approval System: Abstract
+# ApproveIQ - Digital Leave Approval System: Abstract
 
 ## Overview
 
-LeaveFlow is a comprehensive, modern digital leave approval workflow system designed specifically for colleges and educational institutions. The system streamlines and automates the leave request process through an efficient, hierarchical 3-step approval workflow: Class Advisor → Head of Department (HOD) → Principal. This addresses the inefficiencies in traditional paper-based leave approval processes by providing a centralized, transparent, and auditable platform for managing student leave requests.
+ApproveIQ is a comprehensive, modern digital leave approval workflow system designed specifically for colleges and educational institutions. The system streamlines and automates the leave request process through an efficient, hierarchical 3-step approval workflow: Class Advisor → Head of Department (HOD) → Principal. This addresses the inefficiencies in traditional paper-based leave approval processes by providing a centralized, transparent, and auditable platform for managing student leave requests.
 
 ## Problem Statement
 
@@ -15,7 +15,7 @@ Educational institutions face significant challenges in managing student leave r
 
 ## Solution
 
-LeaveFlow provides an integrated solution built on modern web technologies (React 18+, Express.js, MongoDB) that implements:
+ApproveIQ provides an integrated solution built on modern web technologies (React 18+, Express.js, MongoDB) that implements:
 
 ### Key Features:
 1. **Multi-Stage Approval Workflow**: A structured 3-tier approval system with role-based access control
@@ -46,10 +46,10 @@ LeaveFlow provides an integrated solution built on modern web technologies (Reac
 
 ## Conclusion
 
-LeaveFlow represents a modern approach to leave management in educational institutions, combining user-centric design with robust technical infrastructure to create an efficient, transparent, and compliant leave approval system. The application demonstrates the application of contemporary web technologies to solve real-world administrative challenges in educational settings.
+ApproveIQ represents a modern approach to leave management in educational institutions, combining user-centric design with robust technical infrastructure to create an efficient, transparent, and compliant leave approval system. The application demonstrates the application of contemporary web technologies to solve real-world administrative challenges in educational settings.
 
 ---
 
-**Keywords**: Leave Management, Digital Workflow, Approval System, Educational Technology, Role-Based Access Control, REST API, React, Express.js, MongoDB
+**Keywords**: Leave Management, Digital Workflow, Approval System, Educational Technology, Role-Based Access Control, REST API, React, Express.js, MongoDB, ApproveIQ
 
 **Target Audience**: Educational Institutions, College Administrators, System Developers, IT Departments

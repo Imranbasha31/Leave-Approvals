@@ -96,7 +96,7 @@ export default function Index() {
       <section id="features" className="container py-20">
         <div className="text-center mb-12">
           <h2 className="text-3xl lg:text-4xl font-display font-bold mb-4">
-            Why Choose LeaveFlow?
+            Why Choose ApproveIQ?
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto">
             Built specifically for educational institutions with a focus on simplicity and efficiency.
@@ -187,7 +187,7 @@ export default function Index() {
       {/* Footer */}
       <footer className="border-t py-8">
         <div className="container text-center text-sm text-muted-foreground">
-          <p>© 2025 LeaveFlow. Digital Leave Approval System for Educational Institutions.</p>
+          <p>© 2025 ApproveIQ. Digital Leave Approval System for Educational Institutions.</p>
         </div>
       </footer>
     </div>

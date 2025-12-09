@@ -93,7 +93,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               <div className="h-8 w-8 rounded-lg bg-gradient-primary flex items-center justify-center">
                 <FileText className="h-4 w-4 text-primary-foreground" />
               </div>
-              <span className="font-display font-semibold">LeaveFlow</span>
+              <span className="font-display font-semibold">ApproveIQ</span>
             </div>
             <button onClick={() => setSidebarOpen(false)} className="lg:hidden p-1">
               <X className="h-5 w-5" />

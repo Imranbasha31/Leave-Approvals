@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
 import { LeaveRequest, LeaveApproval, ApprovalStage } from '@/types/leave';
 import { useAuth } from './AuthContext';
+import { getApiUrl } from '@/lib/apiConfig';
 
 interface LeaveContextType {
   leaveRequests: LeaveRequest[];
@@ -18,7 +19,7 @@ interface LeaveContextType {
 
 const LeaveContext = createContext<LeaveContextType | undefined>(undefined);
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_URL = getApiUrl();
 
 export function LeaveProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();

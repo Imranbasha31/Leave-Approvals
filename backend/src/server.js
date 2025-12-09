@@ -2,6 +2,8 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import authRoutes from './routes/authRoutes.js';
 import leaveRoutes from './routes/leaveRoutes.js';
 import bcrypt from 'bcryptjs';
@@ -10,11 +12,31 @@ import { LeaveRequest } from './models/LeaveRequest.js';
 
 dotenv.config();
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const app = express();
 
 // Middleware
-app.use(cors());
+// CORS configuration to support multiple origins
+app.use(cors({
+  origin: [
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'http://127.0.0.1:5173',
+    'http://127.0.0.1:3000',
+    'https://ccrbcppp-8080.inc1.devtunnels.ms', // DevTunnel
+    /^https:\/\/.+\.devtunnels\.ms$/, // Allow any devtunnels URL
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
 app.use(express.json());
+
+// Serve static files from frontend build
+const frontendPath = path.join(__dirname, '../../dist');
+app.use(express.static(frontendPath));
 
 // Request logging middleware
 app.use((req, res, next) => {
@@ -85,9 +107,11 @@ async function initializeDatabase() {
 
       await User.insertMany(usersWithHashedPasswords);
       console.log(`✓ Initialized database with ${MOCK_USERS.length} seed users`);
+      console.log('ℹ️  This is a fresh database. Seed users are default test accounts only.');
     } else {
       console.log(`✓ Database already contains ${existingUsers} users`);
       console.log('✓ Using existing data - no automatic modifications');
+      console.log('ℹ️  Your leave requests and user data are preserved!');
     }
   } catch (error) {
     console.error('Database initialization error:', error);
@@ -111,12 +135,19 @@ app.use('/api/auth', authRoutes);
 app.use('/api/leave', leaveRoutes);
 
 // Health check
-app.get('/health', (req, res) => {
-  res.json({ status: 'OK' });
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'OK', timestamp: new Date().toISOString() });
+});
+
+// Serve React app for all other routes (SPA)
+app.get('*', (req, res) => {
+  res.sendFile(path.join(frontendPath, 'index.html'));
 });
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`✓ ApproveIQ Server running on http://0.0.0.0:${PORT}`);
+  console.log(`✓ Frontend served from: ${frontendPath}`);
+  console.log(`✓ API available at: http://0.0.0.0:${PORT}/api`);
 });

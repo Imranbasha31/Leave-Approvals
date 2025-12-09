@@ -55,7 +55,7 @@ export default function Login() {
           <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-gradient-primary shadow-glow mb-4">
             <FileText className="h-8 w-8 text-primary-foreground" />
           </div>
-          <h1 className="text-3xl font-display font-bold text-primary-foreground">LeaveFlow</h1>
+          <h1 className="text-3xl font-display font-bold text-primary-foreground">ApproveIQ</h1>
           <p className="text-primary-foreground/70 mt-2">Digital Leave Approval System</p>
         </div>
 

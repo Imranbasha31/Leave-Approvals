@@ -1,0 +1,83 @@
+# Docker Compose for ApproveIQ application
+# 
+# ⚠️  DATA PERSISTENCE & SAFETY GUIDELINES:
+# ====================================================
+# 
+# 1. DATA IS STORED IN NAMED VOLUME: mongodb_data
+#    - Located at: leave-approval-flow-main_mongodb_data
+#    - Persists automatically across container restarts
+#
+# 2. TO PRESERVE DATA WHEN STOPPING CONTAINERS:
+#    ✓ docker-compose down          (data stays, containers stop)
+#    ✓ docker-compose restart       (containers restart, data preserved)
+#    ✓ docker-compose pause         (containers paused, data safe)
+#
+# 3. ⚠️  TO DELETE DATA (PERMANENT - CANNOT BE UNDONE):
+#    ✗ docker-compose down -v       (DELETES all data!)
+#    ✗ docker volume rm leave-approval-flow-main_mongodb_data
+#
+# 4. HOW TO BACKUP DATA:
+#    docker exec approveiq-mongodb mongodump -u root -p rootpassword \
+#      --authenticationDatabase admin --db approveiq --out /backup
+#    docker cp approveiq-mongodb:/backup ./mongodb-backup
+#
+# 5. TO CHECK VOLUME STATUS:
+#    docker volume ls | grep mongodb_data
+#    docker volume inspect leave-approval-flow-main_mongodb_data
+#
+# Never use -v flag unless you explicitly want to delete all data!
+#
+
+services:
+  mongodb:
+    image: mongo:latest
+    container_name: approveiq-mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: rootpassword
+      MONGO_INITDB_DATABASE: approveiq
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - approveiq-network
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  approveiq:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: approveiq-app
+    ports:
+      - "5000:5000"
+    environment:
+      NODE_ENV: production
+      MONGODB_URI: mongodb://root:rootpassword@mongodb:27017/approveiq?authSource=admin
+      JWT_SECRET: ${JWT_SECRET:-your-secret-key-change-in-production}
+      PORT: 5000
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - approveiq-network
+
+volumes:
+  mongodb_data:
+    driver: local
+
+networks:
+  approveiq-network:
+    driver: bridge

@@ -45,7 +45,7 @@ export default function Dashboard() {
   }, []);
 
   // Student stats
-  const studentLeaves = user?.id ? getLeavesByStudent(user.id) : [];
+  const studentLeaves = leaveRequests;  // API already filters by student ID
   const pendingCount = studentLeaves.filter(l => l.status === 'pending').length;
   const approvedCount = studentLeaves.filter(l => l.status === 'approved').length;
   const rejectedCount = studentLeaves.filter(l => l.status === 'rejected').length;

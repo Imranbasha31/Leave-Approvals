@@ -12,7 +12,7 @@ import { useEffect } from 'react';
 
 export default function MyRequests() {
   const { user } = useAuth();
-  const { getLeavesByStudent, fetchLeaveRequests } = useLeave();
+  const { leaveRequests, fetchLeaveRequests } = useLeave();
   const [selectedRequest, setSelectedRequest] = useState<string | null>(null);
 
   // Refetch leave requests when component mounts
@@ -22,7 +22,8 @@ export default function MyRequests() {
     }
   }, [user, fetchLeaveRequests]);
 
-  const studentLeaves = user?.id ? getLeavesByStudent(user.id) : [];
+  // Use leaveRequests directly - API already filters by student ID
+  const studentLeaves = leaveRequests;
 
   const pendingLeaves = studentLeaves.filter(l => l.status === 'pending');
   const approvedLeaves = studentLeaves.filter(l => l.status === 'approved');
